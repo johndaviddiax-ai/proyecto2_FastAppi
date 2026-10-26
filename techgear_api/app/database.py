@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -17,3 +16,4 @@ client = MongoClient(
 db = client["techgear"]
 productos_collection = db["productos"]
 pedidos_collection = db["pedidos"]
+usuarios_collection = db["usuarios"]
