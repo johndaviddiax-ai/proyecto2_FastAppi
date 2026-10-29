@@ -1,0 +1,38 @@
+{% extends "store/base.html" %}
+
+{% block titulo %}Panel administrativo - TechGear{% endblock %}
+
+{% block contenido %}
+<div class="cinta" role="presentation"></div>
+
+<section class="panel">
+  <h1>Panel administrativo</h1>
+  <p>Sesión iniciada como {{ request.session.nombre }}. Solo las cuentas de administrador ven esta página.</p>
+
+  <h2>Productos</h2>
+  {% if error %}
+    <p class="vacio">{{ error }}</p>
+  {% elif not productos %}
+    <p class="vacio">Todavía no hay productos registrados.</p>
+  {% else %}
+    <div class="tabla-caja">
+      <table class="tabla">
+        <thead>
+          <tr><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th></tr>
+        </thead>
+        <tbody>
+          {% for p in productos %}
+            <tr>
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.categoria }}</td>
+              <td class="num">${{ p.precio|floatformat:2 }}</td>
+              <td class="num">{{ p.stock }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="nota">{{ productos|length }} producto{{ productos|length|pluralize }} en total.</p>
+  {% endif %}
+</section>
+{% endblock %}

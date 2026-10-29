@@ -2,3 +2,5 @@ venv/
 __pycache__/
 .env
 README.md
+__init__.py
+db.sqlite3

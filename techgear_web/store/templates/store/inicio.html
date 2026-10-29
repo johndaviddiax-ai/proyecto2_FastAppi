@@ -1,0 +1,40 @@
+{% extends "store/base.html" %}
+
+{% block titulo %}Catálogo - TechGear{% endblock %}
+
+{% block contenido %}
+<section class="portada">
+  <h1>Lo que hay en stock</h1>
+  <p>Revisa los productos disponibles. Para hacer un pedido necesitas una cuenta.</p>
+</section>
+
+{% if error %}
+  <p class="vacio">{{ error }}</p>
+{% elif not productos %}
+  <p class="vacio">Todavía no hay productos en el catálogo.</p>
+{% else %}
+  <section class="rejilla" aria-label="Productos">
+    {% for p in productos %}
+      <article class="ficha">
+        <div class="ficha-img">
+          {% if p.imagen_url %}
+            <img src="{{ p.imagen_url }}" alt="{{ p.nombre }}" loading="lazy">
+          {% else %}
+            <span>Sin imagen</span>
+          {% endif %}
+        </div>
+        <h2>{{ p.nombre }}</h2>
+        {% if p.descripcion %}<p class="ficha-desc">{{ p.descripcion }}</p>{% endif %}
+        <dl class="ficha-datos">
+          <div><dt>Categoría</dt><dd>{{ p.categoria }}</dd></div>
+          <div>
+            <dt>Disponibles</dt>
+            <dd>{% if p.stock == 0 %}Agotado{% else %}{{ p.stock }}{% endif %}</dd>
+          </div>
+          <div><dt>Precio</dt><dd class="precio">${{ p.precio|floatformat:2 }}</dd></div>
+        </dl>
+      </article>
+    {% endfor %}
+  </section>
+{% endif %}
+{% endblock %}

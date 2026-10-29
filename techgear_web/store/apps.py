@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 
 class StoreConfig(AppConfig):
-    name = 'store'
+    # Ruta completa: store vive dentro del paquete techgear_web.
+    name = 'techgear_web.store'
