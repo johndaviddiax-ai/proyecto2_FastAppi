@@ -1,0 +1,47 @@
+{% extends "store/base.html" %}
+{% load l10n %}
+
+{% block titulo %}{% if modo == "editar" %}Editar producto{% else %}Nuevo producto{% endif %} - TechGear{% endblock %}
+
+{% block contenido %}
+<div class="cinta" role="presentation"></div>
+
+<section class="panel">
+  <a class="volver" href="{% url 'panel_admin' %}">Volver al dashboard</a>
+  <h1>{% if modo == "editar" %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
+
+  <form class="formulario formulario-producto" method="post"
+        action="{% if modo == 'editar' %}{% url 'producto_editar' producto_id %}{% else %}{% url 'producto_nuevo' %}{% endif %}">
+    {% csrf_token %}
+
+    <label class="campo">Nombre
+      <input type="text" name="nombre" value="{{ valores.nombre }}" required minlength="2" maxlength="100">
+    </label>
+    <label class="campo">Categoría
+      <input type="text" name="categoria" value="{{ valores.categoria }}" required>
+    </label>
+    <label class="campo">Descripción
+      <textarea name="descripcion" rows="3">{{ valores.descripcion }}</textarea>
+    </label>
+
+    <div class="par">
+      <label class="campo">Precio
+        <input type="number" name="precio" value="{{ valores.precio|unlocalize }}" required min="0.01" step="0.01">
+      </label>
+      <label class="campo">Stock
+        <input type="number" name="stock" value="{{ valores.stock|unlocalize }}" required min="0" step="1">
+      </label>
+    </div>
+
+    <label class="campo">URL de la imagen
+      <input type="url" name="imagen_url" value="{{ valores.imagen_url|default_if_none:'' }}">
+      <span class="ayuda">Opcional.</span>
+    </label>
+
+    <div class="acciones-form">
+      <button class="btn btn-solido" type="submit">{% if modo == "editar" %}Guardar cambios{% else %}Crear producto{% endif %}</button>
+      <a class="btn btn-borde" href="{% url 'panel_admin' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

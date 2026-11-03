@@ -213,3 +213,44 @@ main { min-height: 70vh; padding: 0 clamp(1rem, 4vw, 3rem) 4rem; }
 @media (max-width: 420px) {
   .rol { grid-template-columns: 1fr; }
 }
+
+/* ---------- Dashboard y formulario de producto ---------- */
+.panel-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.panel-cabecera p { margin-top: 0.5rem; color: var(--tinta-suave); }
+
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin: 0; }
+.resumen div {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-top: 4px solid var(--tinta);
+  padding: 1rem;
+}
+.resumen dt { color: var(--tinta-suave); }
+.resumen dd { margin: 0; font: 700 2.25rem/1.1 var(--fuente-titulo); font-variant-numeric: tabular-nums; }
+
+.btn-borde { background: transparent; color: var(--tinta); border-color: var(--tinta); }
+.btn-borde:hover { background: var(--tinta); color: #fff; }
+.btn-peligro { background: transparent; color: var(--error); border-color: var(--error); }
+.btn-peligro:hover { background: var(--error); color: #fff; }
+.btn-chico { padding: 0.3rem 0.7rem; font-size: 0.875rem; }
+
+.tabla th.acciones, .tabla td.acciones { text-align: right; white-space: nowrap; }
+.acciones form { display: inline; margin: 0; }
+.etiqueta { display: inline-block; padding: 0.1rem 0.5rem; background: var(--cinta); color: var(--tinta); font-weight: 600; font-size: 0.85rem; }
+
+.volver { display: inline-block; margin-bottom: 0.5rem; }
+.formulario-producto { max-width: 36rem; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.campo textarea { font: inherit; padding: 0.6rem 0.75rem; border: 1px solid #8995A3; border-radius: 4px; background: #fff; resize: vertical; }
+.campo textarea:focus-visible { border-color: var(--cobalto); }
+.acciones-form { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+@media (max-width: 420px) {
+  .par { grid-template-columns: 1fr; }
+}

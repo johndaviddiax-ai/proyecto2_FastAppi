@@ -1,24 +1,43 @@
 {% extends "store/base.html" %}
 
-{% block titulo %}Panel administrativo - TechGear{% endblock %}
+{% block titulo %}Dashboard - TechGear{% endblock %}
 
 {% block contenido %}
 <div class="cinta" role="presentation"></div>
 
 <section class="panel">
-  <h1>Panel administrativo</h1>
-  <p>Sesión iniciada como {{ request.session.nombre }}. Solo las cuentas de administrador ven esta página.</p>
+  <div class="panel-cabecera">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Sesión iniciada como {{ request.session.nombre }}. Solo las cuentas de administrador ven esta página.</p>
+    </div>
+    <a class="btn btn-solido" href="{% url 'producto_nuevo' %}">Nuevo producto</a>
+  </div>
 
-  <h2>Productos</h2>
+  {% if not error %}
+    <dl class="resumen">
+      <div><dt>Productos</dt><dd>{{ resumen.total }}</dd></div>
+      <div><dt>Unidades en stock</dt><dd>{{ resumen.unidades }}</dd></div>
+      <div><dt>Agotados</dt><dd>{{ resumen.agotados }}</dd></div>
+    </dl>
+  {% endif %}
+
+  <h2>Productos del catálogo</h2>
   {% if error %}
     <p class="vacio">{{ error }}</p>
   {% elif not productos %}
-    <p class="vacio">Todavía no hay productos registrados.</p>
+    <p class="vacio">Todavía no hay productos. Crea el primero con «Nuevo producto».</p>
   {% else %}
     <div class="tabla-caja">
       <table class="tabla">
         <thead>
-          <tr><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th></tr>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th class="num">Precio</th>
+            <th class="num">Stock</th>
+            <th class="acciones">Acciones</th>
+          </tr>
         </thead>
         <tbody>
           {% for p in productos %}
@@ -26,13 +45,20 @@
               <td>{{ p.nombre }}</td>
               <td>{{ p.categoria }}</td>
               <td class="num">${{ p.precio|floatformat:2 }}</td>
-              <td class="num">{{ p.stock }}</td>
+              <td class="num">{% if p.stock == 0 %}<span class="etiqueta">Agotado</span>{% else %}{{ p.stock }}{% endif %}</td>
+              <td class="acciones">
+                <a class="btn btn-chico btn-borde" href="{% url 'producto_editar' p.id %}">Editar</a>
+                <form method="post" action="{% url 'producto_eliminar' p.id %}"
+                      onsubmit="return confirm('¿Eliminar «{{ p.nombre|escapejs }}»? Esta acción no se puede deshacer.');">
+                  {% csrf_token %}
+                  <button class="btn btn-chico btn-peligro" type="submit">Eliminar</button>
+                </form>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="nota">{{ productos|length }} producto{{ productos|length|pluralize }} en total.</p>
   {% endif %}
 </section>
 {% endblock %}

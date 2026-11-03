@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import requests
 from django.conf import settings
 
@@ -8,30 +10,21 @@ TIMEOUT = 60
 ERROR_CONEXION = "No pudimos conectar con el servidor. Intenta de nuevo en un momento."
 
 
-def listar_productos():
-    """Pide los productos a la API de FastAPI.
+class SesionInvalida(Exception):
+    """La API rechazó el token (venció o ya no tiene permisos de administrador)."""
 
-    Devuelve (productos, error). Si la API no responde, productos es una
-    lista vacía y error trae un mensaje para mostrar en pantalla.
+
+def _solicitar(metodo, ruta, *, token=None, datos=None, error_por_defecto=None):
+    """Envía una petición a la API. Devuelve (cuerpo_json, error); uno de los dos es None.
+
+    Si se manda un token, va en el encabezado Authorization (Bearer). Si con
+    token la API responde 401 o 403, se lanza SesionInvalida.
     """
+    cabeceras = {"Authorization": f"Bearer {token}"} if token else {}
     try:
-        respuesta = requests.get(f"{settings.API_URL}/productos", timeout=TIMEOUT)
-        respuesta.raise_for_status()
-        productos = respuesta.json()
-    except (requests.RequestException, ValueError):
-        return [], "No pudimos cargar los productos. Intenta de nuevo en un momento."
-
-    # La API devuelve "_id", pero los templates de Django no permiten
-    # variables que empiecen con guion bajo. Lo renombramos a "id".
-    for producto in productos:
-        producto["id"] = producto.pop("_id")
-    return productos, None
-
-
-def _enviar(ruta, datos, error_por_defecto):
-    """POST a la API. Devuelve (respuesta_json, error); uno de los dos es None."""
-    try:
-        respuesta = requests.post(f"{settings.API_URL}{ruta}", json=datos, timeout=TIMEOUT)
+        respuesta = requests.request(
+            metodo, f"{settings.API_URL}{ruta}", json=datos, headers=cabeceras, timeout=TIMEOUT
+        )
     except requests.RequestException:
         return None, ERROR_CONEXION
 
@@ -40,26 +33,80 @@ def _enviar(ruta, datos, error_por_defecto):
     except ValueError:
         return None, ERROR_CONEXION
 
+    if token and respuesta.status_code in (401, 403):
+        raise SesionInvalida()
+
     if respuesta.status_code in (200, 201):
         return cuerpo, None
 
-    # La API manda el motivo en "detail" como texto. En errores de validación
-    # (422) "detail" es una lista técnica, así que mostramos un mensaje claro.
+    # La API manda el motivo en "detail". Si es texto, se muestra tal cual.
     detalle = cuerpo.get("detail") if isinstance(cuerpo, dict) else None
-    return None, detalle if isinstance(detalle, str) else error_por_defecto
+    if isinstance(detalle, str):
+        return None, detalle
+    if error_por_defecto:
+        return None, error_por_defecto
+    # En errores de validación (422) "detail" es una lista técnica: se resume
+    # en los nombres de los campos con problemas.
+    if isinstance(detalle, list):
+        campos = sorted({str(e["loc"][-1]) for e in detalle if isinstance(e, dict) and e.get("loc")})
+        if campos:
+            return None, "Revisa estos campos: " + ", ".join(campos) + "."
+    return None, "No se pudo completar la operación."
 
+
+# ---------- Productos ----------
+
+def _con_id(producto):
+    # La API devuelve "_id", pero los templates de Django no permiten
+    # variables que empiecen con guion bajo. Lo renombramos a "id".
+    producto["id"] = producto.pop("_id")
+    return producto
+
+
+def listar_productos():
+    """GET /productos. Devuelve (productos, error)."""
+    productos, error = _solicitar("GET", "/productos")
+    if error:
+        return [], "No pudimos cargar los productos. Intenta de nuevo en un momento."
+    return [_con_id(p) for p in productos], None
+
+
+def obtener_producto(producto_id):
+    """GET /productos/{id}. Devuelve (producto, error)."""
+    producto, error = _solicitar("GET", f"/productos/{quote(producto_id, safe='')}")
+    return (_con_id(producto) if producto else None), error
+
+
+def crear_producto(token, datos):
+    """POST /productos (solo administrador)."""
+    return _solicitar("POST", "/productos", token=token, datos=datos)
+
+
+def actualizar_producto(token, producto_id, datos):
+    """PUT /productos/{id} (solo administrador)."""
+    return _solicitar("PUT", f"/productos/{quote(producto_id, safe='')}", token=token, datos=datos)
+
+
+def eliminar_producto(token, producto_id):
+    """DELETE /productos/{id} (solo administrador)."""
+    return _solicitar("DELETE", f"/productos/{quote(producto_id, safe='')}", token=token)
+
+
+# ---------- Usuarios ----------
 
 def registrar_usuario(nombre, email, password):
-    return _enviar(
+    return _solicitar(
+        "POST",
         "/usuarios/registro",
-        {"nombre": nombre, "email": email, "password": password},
-        "Revisa los datos: el correo debe ser válido y la contraseña tener mínimo 8 caracteres.",
+        datos={"nombre": nombre, "email": email, "password": password},
+        error_por_defecto="Revisa los datos: el correo debe ser válido y la contraseña tener mínimo 8 caracteres.",
     )
 
 
 def iniciar_sesion(email, password, rol):
-    return _enviar(
+    return _solicitar(
+        "POST",
         "/usuarios/login",
-        {"email": email, "password": password, "rol": rol},
-        "Revisa el correo, la contraseña y el rol elegido.",
+        datos={"email": email, "password": password, "rol": rol},
+        error_por_defecto="Revisa el correo, la contraseña y el rol elegido.",
     )
