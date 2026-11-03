@@ -1,2 +1,2 @@
-django ==3.12
+django 
 requests
