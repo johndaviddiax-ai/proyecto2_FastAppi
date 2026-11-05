@@ -6,25 +6,11 @@
 <section class="acceso">
   <div class="acceso-texto">
     <h1>Entra a tu cuenta</h1>
-    <p>Elige cómo quieres ingresar. El acceso como administrador solo funciona con cuentas que tengan ese rol.</p>
+    <p>Inicia sesión con tu correo y contraseña. Según el tipo de cuenta, entrarás al catálogo o al panel administrativo.</p>
   </div>
 
   <form class="formulario" method="post" action="{% url 'login' %}">
     {% csrf_token %}
-
-    <fieldset class="rol">
-      <legend>Ingresar como</legend>
-      <label class="rol-opcion">
-        <input type="radio" name="rol" value="cliente" {% if rol != "administrador" %}checked{% endif %}>
-        <span class="rol-titulo">Usuario normal</span>
-        <span class="rol-detalle">Ver el catálogo y hacer pedidos.</span>
-      </label>
-      <label class="rol-opcion rol-admin">
-        <input type="radio" name="rol" value="administrador" {% if rol == "administrador" %}checked{% endif %}>
-        <span class="rol-titulo">Administrador</span>
-        <span class="rol-detalle">Entrar al panel administrativo.</span>
-      </label>
-    </fieldset>
 
     <label class="campo">Correo electrónico
       <input type="email" name="email" value="{{ email }}" required autocomplete="email">

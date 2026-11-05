@@ -17,7 +17,6 @@ class ItemPedido(BaseModel):
 
 
 class PedidoCreate(BaseModel):
-    cliente_id: str  # id del usuario de Django
     items: list[ItemPedido] = Field(min_length=1)
 
 

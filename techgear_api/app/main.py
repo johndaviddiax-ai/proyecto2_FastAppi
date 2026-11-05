@@ -49,12 +49,26 @@ def eliminar_producto(id: str):
     return {"mensaje": "Producto eliminado correctamente"}
 
 @app.post("/pedidos", response_model=PedidoOut, status_code=status.HTTP_201_CREATED)
-def crear_pedido(pedido: PedidoCreate):
+def crear_pedido(pedido: PedidoCreate, payload: dict = Depends(usuario_actual)):
     try:
-        return pedidos.crear(pedido)
+        # El comprador sale del token ("sub" es el id del usuario)
+        return pedidos.crear(pedido, cliente_id=payload["sub"])
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
 
+
+@app.get("/pedidos/mios", response_model=list[PedidoOut])
+def mis_pedidos(payload: dict = Depends(usuario_actual)):
+    return pedidos.listar_por_cliente(payload["sub"])
+
+@app.put("/pedidos/{id}/cancelar", response_model=PedidoOut)
+def cancelar_pedido(id: str, payload: dict = Depends(usuario_actual)):
+    try:
+        return pedidos.cancelar(id, cliente_id=payload["sub"])
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 # ---------- Usuarios ----------
 
@@ -69,11 +83,9 @@ def registrar_usuario(datos: UsuarioRegistro):
 @app.post("/usuarios/login", response_model=TokenOut)
 def iniciar_sesion(datos: UsuarioLogin):
     try:
-        usuario = usuarios.autenticar(datos.email, datos.password, datos.rol)
+        usuario = usuarios.autenticar(datos.email, datos.password)
     except ValueError as error:
         raise HTTPException(status_code=401, detail=str(error))
-    except PermissionError as error:
-        raise HTTPException(status_code=403, detail=str(error))
     token, segundos = crear_token(usuario)
     return {
         "access_token": token,

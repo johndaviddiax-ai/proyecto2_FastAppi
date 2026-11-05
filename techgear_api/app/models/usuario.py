@@ -42,7 +42,6 @@ class UsuarioRegistro(BaseModel):
 class UsuarioLogin(BaseModel):
     email: EmailStr
     password: str
-    rol: RolUsuario  # el rol con el que la persona quiere entrar
 
 
 class TokenOut(BaseModel):

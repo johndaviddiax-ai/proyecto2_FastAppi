@@ -1,11 +1,14 @@
 import math
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from . import api
-from .decorators import admin_requerido
+from .decorators import admin_requerido, login_requerido
 
 
 def inicio(request):
@@ -17,13 +20,12 @@ def login_view(request):
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         password = request.POST.get("password", "")
-        rol = request.POST.get("rol", "cliente")
 
-        datos, error = api.iniciar_sesion(email, password, rol)
+        datos, error = api.iniciar_sesion(email, password)
         if error:
             messages.error(request, error)
-            # Se devuelven correo y rol para no obligar a escribirlos de nuevo.
-            return render(request, "store/login.html", {"email": email, "rol": rol})
+            # Se devuelve el correo para no obligar a escribirlo de nuevo.
+            return render(request, "store/login.html", {"email": email})
 
         # Sesión nueva (evita reutilizar una sesión anterior) y guarda lo
         # que el resto del sitio necesita saber del usuario.
@@ -34,6 +36,7 @@ def login_view(request):
         # La sesión dura lo mismo que el JWT: cuando el token vence, la sesión también.
         request.session.set_expiry(datos["expires_in"])
 
+        # El rol real de la cuenta decide a dónde entra.
         if datos["usuario"]["rol"] == "administrador":
             return redirect("panel_admin")
         return redirect("inicio")
@@ -164,3 +167,71 @@ def producto_eliminar(request, producto_id):
     else:
         messages.success(request, "Producto eliminado.")
     return redirect("panel_admin")
+
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nDisallow: /panel/\n", content_type="text/plain")
+# ---------- Pedidos del cliente ----------
+
+@login_requerido
+@require_POST
+def comprar(request, producto_id):
+    """Crea un pedido de un producto. La API valida el stock y lo descuenta."""
+    if request.session.get("rol") != "cliente":
+        messages.error(request, "Solo las cuentas de cliente pueden comprar.")
+        return redirect("inicio")
+
+    try:
+        cantidad = int(request.POST.get("cantidad", "1"))
+    except ValueError:
+        cantidad = 0
+    if cantidad < 1:
+        messages.error(request, "La cantidad debe ser al menos 1.")
+        return redirect("inicio")
+
+    _, error = api.crear_pedido(request.session["token"], producto_id, cantidad)
+    if error:
+        messages.error(request, error)
+    else:
+        messages.success(request, "¡Pedido realizado! Lo puedes ver en «Mis pedidos».")
+    return redirect("inicio")
+
+
+@login_requerido
+def mis_pedidos(request):
+    """Lista los pedidos del usuario con sesión iniciada."""
+    pedidos, error = api.mis_pedidos(request.session["token"])
+    if error:
+        return render(request, "store/mis_pedidos.html", {"pedidos": [], "error": error})
+
+    # La API guarda solo el id del producto; se busca el nombre en el catálogo.
+    productos, _ = api.listar_productos()
+    nombres = {p["id"]: p["nombre"] for p in productos}
+
+    for pedido in pedidos:
+        pedido["codigo"] = pedido["_id"][-6:].upper()
+        pedido["id"] = pedido["_id"]
+        pedido["lineas"] = [
+            {"nombre": nombres.get(i["producto_id"], "Producto eliminado"), "cantidad": i["cantidad"]}
+            for i in pedido["items"]
+        ]
+        # La fecha llega en UTC; se muestra en hora de Colombia.
+        fecha = datetime.fromisoformat(pedido["fecha"])
+        if fecha.tzinfo is None:
+            fecha = fecha.replace(tzinfo=timezone.utc)
+        pedido["fecha"] = fecha.astimezone(ZoneInfo("America/Bogota")).strftime("%d/%m/%Y %H:%M")
+
+    return render(request, "store/mis_pedidos.html", {"pedidos": pedidos, "error": None})
+
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nDisallow: /panel/\n", content_type="text/plain")
+
+@login_requerido
+@require_POST
+def pedido_cancelar(request, pedido_id):
+    """Retira un pedido pendiente. La API devuelve el stock."""
+    _, error = api.cancelar_pedido(request.session["token"], pedido_id)
+    if error:
+        messages.error(request, error)
+    else:
+        messages.success(request, "Pedido retirado. Los productos volvieron al catálogo.")
+    return redirect("mis_pedidos")

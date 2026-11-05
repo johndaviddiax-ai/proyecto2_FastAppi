@@ -22,16 +22,11 @@ def registrar(datos: UsuarioRegistro) -> dict:
     return documento
 
 
-def autenticar(email: str, password: str, rol: RolUsuario) -> dict:
+def autenticar(email: str, password: str) -> dict:
     usuario = usuarios_collection.find_one({"email": email.lower()})
     # Mismo mensaje si el correo no existe o la contraseña falla: no revela cuál.
     if not usuario or not verificar_password(password, usuario["password_hash"]):
         raise ValueError("Correo o contraseña incorrectos")
-    # Aquí la contraseña ya es correcta: ahora se compara el rol elegido con el REAL.
-    if usuario["rol"] != rol.value:
-        if usuario["rol"] == RolUsuario.administrador.value:
-            raise PermissionError("Esta cuenta es de administrador. Elige Administrador para ingresar")
-        raise PermissionError("Esta cuenta no tiene permisos de administrador")
     return usuario
 
 

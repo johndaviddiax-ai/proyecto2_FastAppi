@@ -4,17 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}TechGear{% endblock %}</title>
+  <meta name="description" content="{% block descripcion %}TechGear: tienda de hardware y accesorios tecnológicos. Consulta el catálogo y haz tu pedido en línea.{% endblock %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap"></noscript>
   <link rel="stylesheet" href="{% static 'store/css/estilos.css' %}">
 </head>
+
 <body>
   <header class="barra">
     <a class="marca" href="{% url 'inicio' %}">TechGear</a>
 
     <nav class="menu" aria-label="Principal">
       <a href="{% url 'inicio' %}">Catálogo</a>
+      {% if request.session.rol == "cliente" %}
+        <a href="{% url 'mis_pedidos' %}">Mis pedidos</a>
+      {% endif %}
       {% if request.session.rol == "administrador" %}
         <a href="{% url 'panel_admin' %}">Panel administrativo</a>
       {% endif %}

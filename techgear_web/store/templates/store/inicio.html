@@ -33,6 +33,20 @@
           </div>
           <div><dt>Precio</dt><dd class="precio">${{ p.precio|floatformat:2 }}</dd></div>
         </dl>
+
+        {% if p.stock > 0 %}
+          {% if request.session.rol == "cliente" %}
+            <form class="comprar" method="post" action="{% url 'comprar' p.id %}">
+              {% csrf_token %}
+              <label>Cantidad
+                <input type="number" name="cantidad" value="1" min="1" max="{{ p.stock }}" required>
+              </label>
+              <button class="btn btn-solido btn-chico" type="submit">Comprar</button>
+            </form>
+          {% elif not request.session.token %}
+            <a class="btn btn-borde btn-chico" href="{% url 'login' %}">Inicia sesión para comprar</a>
+          {% endif %}
+        {% endif %}
       </article>
     {% endfor %}
   </section>

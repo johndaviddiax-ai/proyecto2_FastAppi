@@ -14,7 +14,7 @@ class SesionInvalida(Exception):
     """La API rechazó el token (venció o ya no tiene permisos de administrador)."""
 
 
-def _solicitar(metodo, ruta, *, token=None, datos=None, error_por_defecto=None):
+def _solicitar(metodo, ruta, *, token=None, datos=None, error_por_defecto=None, timeout=TIMEOUT):
     """Envía una petición a la API. Devuelve (cuerpo_json, error); uno de los dos es None.
 
     Si se manda un token, va en el encabezado Authorization (Bearer). Si con
@@ -22,8 +22,8 @@ def _solicitar(metodo, ruta, *, token=None, datos=None, error_por_defecto=None):
     """
     cabeceras = {"Authorization": f"Bearer {token}"} if token else {}
     try:
-        respuesta = requests.request(
-            metodo, f"{settings.API_URL}{ruta}", json=datos, headers=cabeceras, timeout=TIMEOUT
+                respuesta = requests.request(
+            metodo, f"{settings.API_URL}{ruta}", json=datos, headers=cabeceras, timeout=timeout
         )
     except requests.RequestException:
         return None, ERROR_CONEXION
@@ -65,7 +65,7 @@ def _con_id(producto):
 
 def listar_productos():
     """GET /productos. Devuelve (productos, error)."""
-    productos, error = _solicitar("GET", "/productos")
+    productos, error = _solicitar("GET", "/productos", timeout=8)
     if error:
         return [], "No pudimos cargar los productos. Intenta de nuevo en un momento."
     return [_con_id(p) for p in productos], None
@@ -103,10 +103,29 @@ def registrar_usuario(nombre, email, password):
     )
 
 
-def iniciar_sesion(email, password, rol):
+def iniciar_sesion(email, password):
     return _solicitar(
         "POST",
         "/usuarios/login",
-        datos={"email": email, "password": password, "rol": rol},
-        error_por_defecto="Revisa el correo, la contraseña y el rol elegido.",
+        datos={"email": email, "password": password},
+        error_por_defecto="Revisa el correo y la contraseña.",
     )
+    # ---------- Pedidos ----------
+
+def crear_pedido(token, producto_id, cantidad):
+    """POST /pedidos (requiere sesión). El comprador lo decide el token."""
+    return _solicitar(
+        "POST",
+        "/pedidos",
+        token=token,
+        datos={"items": [{"producto_id": producto_id, "cantidad": cantidad}]},
+    )
+
+
+def mis_pedidos(token):
+    """GET /pedidos/mios. Devuelve (pedidos, error)."""
+    return _solicitar("GET", "/pedidos/mios", token=token)
+
+def cancelar_pedido(token, pedido_id):
+    """PUT /pedidos/{id}/cancelar (solo el dueño del pedido)."""
+    return _solicitar("PUT", f"/pedidos/{quote(pedido_id, safe='')}/cancelar", token=token)

@@ -1,0 +1,56 @@
+{% extends "store/base.html" %}
+
+{% block titulo %}Mis pedidos - TechGear{% endblock %}
+
+{% block contenido %}
+<section class="panel">
+  <div class="panel-cabecera">
+    <div>
+      <h1>Mis pedidos</h1>
+      <p>Aquí aparecen tus compras, las más recientes primero.</p>
+    </div>
+    <a class="btn btn-solido" href="{% url 'inicio' %}">Seguir comprando</a>
+  </div>
+
+  {% if error %}
+    <p class="vacio">{{ error }}</p>
+  {% elif not pedidos %}
+    <p class="vacio">Todavía no has hecho ningún pedido.</p>
+  {% else %}
+    <div class="tabla-caja">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Fecha</th>
+            <th>Productos</th>
+            <th class="num">Total</th>
+            <th>Estado</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pedidos %}
+            <tr>
+              <td>#{{ p.codigo }}</td>
+              <td>{{ p.fecha }}</td>
+              <td>{% for l in p.lineas %}{{ l.nombre }} × {{ l.cantidad }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+              <td class="num">${{ p.total|floatformat:2 }}</td>
+              <td><span class="etiqueta">{{ p.estado|capfirst }}</span></td>
+              <td class="acciones">
+                {% if p.estado == "pendiente" %}
+                  <form method="post" action="{% url 'pedido_cancelar' p.id %}"
+                        onsubmit="return confirm('¿Retirar este pedido? Los productos volverán al catálogo.');">
+                    {% csrf_token %}
+                    <button class="btn btn-chico btn-peligro" type="submit">Retirar</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
