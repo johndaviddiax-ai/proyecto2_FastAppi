@@ -258,3 +258,6 @@ main { min-height: 70vh; padding: 0 clamp(1rem, 4vw, 3rem) 4rem; }
 .comprar { display: flex; align-items: flex-end; gap: 0.6rem; margin-top: 0.8rem; }
 .comprar label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--tinta-suave); }
 .comprar input { width: 5rem; padding: 0.4rem; font: inherit; border: 1px solid var(--linea); border-radius: 6px; }
+
+.pie { text-align: center; padding: 1.5rem 1rem; color: var(--tinta-suave); font-size: 0.9rem; border-top: 1px solid var(--linea); }
+.pie p { margin: 0.2rem 0; }

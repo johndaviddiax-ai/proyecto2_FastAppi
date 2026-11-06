@@ -3,6 +3,8 @@
 
 {% block titulo %}{% if modo == "editar" %}Editar producto{% else %}Nuevo producto{% endif %} - TechGear{% endblock %}
 
+{% block descripcion %}Formulario para crear o editar un producto del catálogo de TechGear.{% endblock %}
+
 {% block contenido %}
 <div class="cinta" role="presentation"></div>
 
@@ -20,8 +22,11 @@
     <label class="campo">Categoría
       <input type="text" name="categoria" value="{{ valores.categoria }}" required>
     </label>
+
     <label class="campo">Descripción
-      <textarea name="descripcion" rows="3">{{ valores.descripcion }}</textarea>
+      <textarea name="descripcion" rows="3" required minlength="10" maxlength="200"
+                placeholder="Ej: Mouse inalámbrico de 6 botones y batería de larga duración.">{{ valores.descripcion }}</textarea>
+      <span class="ayuda">Entre 10 y 200 caracteres. Se muestra en el catálogo.</span>
     </label>
 
     <div class="par">
@@ -34,8 +39,9 @@
     </div>
 
     <label class="campo">URL de la imagen
-      <input type="url" name="imagen_url" value="{{ valores.imagen_url|default_if_none:'' }}">
-      <span class="ayuda">Opcional.</span>
+      <input type="url" name="imagen_url" value="{{ valores.imagen_url|default_if_none:'' }}"
+             pattern="https://.+" placeholder="https://ejemplo.com/foto.jpg">
+      <span class="ayuda">Opcional. Debe empezar por https://. Haz clic derecho sobre la imagen y elige «Copiar dirección de imagen».</span>
     </label>
 
     <div class="acciones-form">

@@ -16,6 +16,12 @@ def inicio(request):
     return render(request, "store/inicio.html", {"productos": productos, "error": error})
 
 
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nAllow: /\n", content_type="text/plain")
+
+
+# ---------- Login, registro y logout ----------
+
 def login_view(request):
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
@@ -24,19 +30,18 @@ def login_view(request):
         datos, error = api.iniciar_sesion(email, password)
         if error:
             messages.error(request, error)
-            # Se devuelve el correo para no obligar a escribirlo de nuevo.
+            # devolvemos el correo para que no lo escriba otra vez
             return render(request, "store/login.html", {"email": email})
 
-        # Sesión nueva (evita reutilizar una sesión anterior) y guarda lo
-        # que el resto del sitio necesita saber del usuario.
+        # guardamos en la sesión lo que necesitamos del usuario
         request.session.cycle_key()
         request.session["token"] = datos["access_token"]
         request.session["rol"] = datos["usuario"]["rol"]
         request.session["nombre"] = datos["usuario"]["nombre"]
-        # La sesión dura lo mismo que el JWT: cuando el token vence, la sesión también.
+        # la sesión dura lo mismo que el token
         request.session.set_expiry(datos["expires_in"])
 
-        # El rol real de la cuenta decide a dónde entra.
+        # según el rol de la cuenta, va al panel o al catálogo
         if datos["usuario"]["rol"] == "administrador":
             return redirect("panel_admin")
         return redirect("inicio")
@@ -69,15 +74,14 @@ def registro_view(request):
 
 @require_POST
 def logout_view(request):
-    request.session.flush()  # borra token, rol y nombre de la sesión
+    request.session.flush()
     return redirect("inicio")
 
 
-# ---------- Dashboard del administrador: CRUD de productos ----------
+# ---------- Panel del administrador (CRUD de productos) ----------
 
 @admin_requerido
 def panel_admin(request):
-    """Dashboard. READ: lista los productos (GET /productos) y calcula el resumen."""
     productos, error = api.listar_productos()
     resumen = {
         "total": len(productos),
@@ -90,16 +94,18 @@ def panel_admin(request):
 
 
 def _leer_formulario(request):
-    """Lee el formulario de producto. Devuelve (valores, datos_para_la_api, error).
-
-    Los navegadores solo envían texto, así que aquí se convierten precio y
-    stock a número antes de mandarlos a la API.
-    """
+    # lee el formulario del producto y devuelve (valores, datos para la API, error)
     campos = ("nombre", "descripcion", "categoria", "precio", "stock", "imagen_url")
     valores = {campo: request.POST.get(campo, "").strip() for campo in campos}
+    
+    if not 10 <= len(valores["descripcion"]) <= 200:
+        return valores, None, "La descripción debe tener entre 10 y 200 caracteres."
 
+    if valores["imagen_url"] and not valores["imagen_url"].startswith("https://"):
+        return valores, None, "La URL de la imagen debe empezar por https://."
     if not valores["nombre"] or not valores["categoria"]:
         return valores, None, "El nombre y la categoría son obligatorios."
+
     try:
         precio = float(valores["precio"])
         stock = int(valores["stock"])
@@ -121,7 +127,6 @@ def _leer_formulario(request):
 
 @admin_requerido
 def producto_nuevo(request):
-    """CREATE: GET muestra el formulario vacío; POST envía POST /productos a la API."""
     if request.method == "POST":
         valores, datos, error = _leer_formulario(request)
         if not error:
@@ -137,7 +142,6 @@ def producto_nuevo(request):
 
 @admin_requerido
 def producto_editar(request, producto_id):
-    """UPDATE: GET trae el producto (GET /productos/{id}); POST envía PUT /productos/{id}."""
     contexto = {"modo": "editar", "producto_id": producto_id}
 
     if request.method == "POST":
@@ -150,6 +154,7 @@ def producto_editar(request, producto_id):
         messages.success(request, f"Producto «{datos['nombre']}» actualizado.")
         return redirect("panel_admin")
 
+    # GET: trae el producto para llenar el formulario
     producto, error = api.obtener_producto(producto_id)
     if error:
         messages.error(request, error)
@@ -160,7 +165,6 @@ def producto_editar(request, producto_id):
 @admin_requerido
 @require_POST
 def producto_eliminar(request, producto_id):
-    """DELETE: el botón envía un POST a Django, que manda DELETE /productos/{id} a la API."""
     _, error = api.eliminar_producto(request.session["token"], producto_id)
     if error:
         messages.error(request, error)
@@ -168,14 +172,13 @@ def producto_eliminar(request, producto_id):
         messages.success(request, "Producto eliminado.")
     return redirect("panel_admin")
 
-def robots_txt(request):
-    return HttpResponse("User-agent: *\nDisallow: /panel/\n", content_type="text/plain")
+
 # ---------- Pedidos del cliente ----------
 
 @login_requerido
 @require_POST
 def comprar(request, producto_id):
-    """Crea un pedido de un producto. La API valida el stock y lo descuenta."""
+    # solo los clientes pueden comprar
     if request.session.get("rol") != "cliente":
         messages.error(request, "Solo las cuentas de cliente pueden comprar.")
         return redirect("inicio")
@@ -188,6 +191,7 @@ def comprar(request, producto_id):
         messages.error(request, "La cantidad debe ser al menos 1.")
         return redirect("inicio")
 
+    # la API revisa el stock y lo descuenta
     _, error = api.crear_pedido(request.session["token"], producto_id, cantidad)
     if error:
         messages.error(request, error)
@@ -198,23 +202,23 @@ def comprar(request, producto_id):
 
 @login_requerido
 def mis_pedidos(request):
-    """Lista los pedidos del usuario con sesión iniciada."""
     pedidos, error = api.mis_pedidos(request.session["token"])
     if error:
         return render(request, "store/mis_pedidos.html", {"pedidos": [], "error": error})
 
-    # La API guarda solo el id del producto; se busca el nombre en el catálogo.
-    productos, _ = api.listar_productos()
+    # el pedido solo guarda el id del producto, así que buscamos el nombre en el catálogo
+    productos, error_productos = api.listar_productos()
     nombres = {p["id"]: p["nombre"] for p in productos}
+    sin_nombre = "Producto" if error_productos else "Producto eliminado"
 
     for pedido in pedidos:
         pedido["codigo"] = pedido["_id"][-6:].upper()
         pedido["id"] = pedido["_id"]
         pedido["lineas"] = [
-            {"nombre": nombres.get(i["producto_id"], "Producto eliminado"), "cantidad": i["cantidad"]}
+            {"nombre": nombres.get(i["producto_id"], sin_nombre), "cantidad": i["cantidad"]}
             for i in pedido["items"]
         ]
-        # La fecha llega en UTC; se muestra en hora de Colombia.
+        # la fecha llega en UTC, la pasamos a hora de Colombia
         fecha = datetime.fromisoformat(pedido["fecha"])
         if fecha.tzinfo is None:
             fecha = fecha.replace(tzinfo=timezone.utc)
@@ -222,13 +226,11 @@ def mis_pedidos(request):
 
     return render(request, "store/mis_pedidos.html", {"pedidos": pedidos, "error": None})
 
-def robots_txt(request):
-    return HttpResponse("User-agent: *\nDisallow: /panel/\n", content_type="text/plain")
 
 @login_requerido
 @require_POST
 def pedido_cancelar(request, pedido_id):
-    """Retira un pedido pendiente. La API devuelve el stock."""
+    # la API cancela el pedido y devuelve el stock
     _, error = api.cancelar_pedido(request.session["token"], pedido_id)
     if error:
         messages.error(request, error)

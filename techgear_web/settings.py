@@ -144,3 +144,14 @@ MAILERS = {
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
+
+# muestra en la consola (y en los logs de Vercel) los errores internos del servidor
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django.request": {"handlers": ["console"], "level": "ERROR"}},
+}
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None

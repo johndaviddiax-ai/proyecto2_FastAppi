@@ -8,8 +8,16 @@ from app.models.pedido import PedidoCreate, PedidoOut
 from app.controllers import usuario_controller as usuarios
 from app.models.usuario import TokenOut, UsuarioLogin, UsuarioOut, UsuarioRegistro
 from app.security import crear_token, solo_admin, usuario_actual
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 
 app = FastAPI(title="TechGear API", version="1.0.0")
+@app.exception_handler(PyMongoError)
+def error_base_de_datos(request, exc):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "El servicio no está disponible. Intenta de nuevo en un momento."},
+    )
 
 
 @app.post("/productos", response_model=ProductoOut, status_code=status.HTTP_201_CREATED,

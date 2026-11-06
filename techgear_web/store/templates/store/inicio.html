@@ -9,46 +9,51 @@
 </section>
 
 {% if error %}
-  <p class="vacio">{{ error }}</p>
+<p class="vacio">{{ error }}</p>
 {% elif not productos %}
-  <p class="vacio">Todavía no hay productos en el catálogo.</p>
+<p class="vacio">Todavía no hay productos en el catálogo.</p>
 {% else %}
-  <section class="rejilla" aria-label="Productos">
-    {% for p in productos %}
-      <article class="ficha">
-        <div class="ficha-img">
-          {% if p.imagen_url %}
-            <img src="{{ p.imagen_url }}" alt="{{ p.nombre }}" loading="lazy">
-          {% else %}
-            <span>Sin imagen</span>
-          {% endif %}
-        </div>
-        <h2>{{ p.nombre }}</h2>
-        {% if p.descripcion %}<p class="ficha-desc">{{ p.descripcion }}</p>{% endif %}
-        <dl class="ficha-datos">
-          <div><dt>Categoría</dt><dd>{{ p.categoria }}</dd></div>
-          <div>
-            <dt>Disponibles</dt>
-            <dd>{% if p.stock == 0 %}Agotado{% else %}{{ p.stock }}{% endif %}</dd>
-          </div>
-          <div><dt>Precio</dt><dd class="precio">${{ p.precio|floatformat:2 }}</dd></div>
-        </dl>
+<section class="rejilla" aria-label="Productos">
+  {% for p in productos %}
+  <article class="ficha">
+    <div class="ficha-img">
+      {% if p.imagen_url %}
+      <img src="{{ p.imagen_url }}" alt="{{ p.nombre }}" loading="lazy" referrerpolicy="no-referrer"
+        onerror="this.parentElement.innerHTML='<span>Imagen no disponible</span>'">
+      {% endif %}
+    </div>
+    <h2>{{ p.nombre }}</h2>
+    {% if p.descripcion %}<p class="ficha-desc">{{ p.descripcion }}</p>{% endif %}
+    <dl class="ficha-datos">
+      <div>
+        <dt>Categoría</dt>
+        <dd>{{ p.categoria }}</dd>
+      </div>
+      <div>
+        <dt>Disponibles</dt>
+        <dd>{% if p.stock == 0 %}Agotado{% else %}{{ p.stock }}{% endif %}</dd>
+      </div>
+      <div>
+        <dt>Precio</dt>
+        <dd class="precio">${{ p.precio|floatformat:2 }}</dd>
+      </div>
+    </dl>
 
-        {% if p.stock > 0 %}
-          {% if request.session.rol == "cliente" %}
-            <form class="comprar" method="post" action="{% url 'comprar' p.id %}">
-              {% csrf_token %}
-              <label>Cantidad
-                <input type="number" name="cantidad" value="1" min="1" max="{{ p.stock }}" required>
-              </label>
-              <button class="btn btn-solido btn-chico" type="submit">Comprar</button>
-            </form>
-          {% elif not request.session.token %}
-            <a class="btn btn-borde btn-chico" href="{% url 'login' %}">Inicia sesión para comprar</a>
-          {% endif %}
-        {% endif %}
-      </article>
-    {% endfor %}
-  </section>
+    {% if p.stock > 0 %}
+    {% if request.session.rol == "cliente" %}
+    <form class="comprar" method="post" action="{% url 'comprar' p.id %}">
+      {% csrf_token %}
+      <label>Cantidad
+        <input type="number" name="cantidad" value="1" min="1" max="{{ p.stock }}" required>
+      </label>
+      <button class="btn btn-solido btn-chico" type="submit">Comprar</button>
+    </form>
+    {% elif not request.session.token %}
+    <a class="btn btn-borde btn-chico" href="{% url 'login' %}">Inicia sesión para comprar</a>
+    {% endif %}
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
 {% endif %}
 {% endblock %}

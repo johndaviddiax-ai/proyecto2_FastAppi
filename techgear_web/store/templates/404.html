@@ -1,0 +1,11 @@
+{% extends "store/base.html" %}
+
+{% block titulo %}Página no encontrada - TechGear{% endblock %}
+
+{% block contenido %}
+<section class="panel">
+  <h1>No encontramos esa página</h1>
+  <p>La dirección no existe o fue movida.</p>
+  <a class="btn btn-solido" href="{% url 'inicio' %}">Volver al catálogo</a>
+</section>
+{% endblock %}
